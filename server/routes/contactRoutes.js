@@ -1,10 +1,20 @@
 import express from 'express';
 import { Contact } from '../models/Contact.js';
-import { memoryStore, getDbStatus } from '../config/db.js';
+import { memoryStore, getDbStatus, getConnectionData } from '../config/db.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { contactLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+
+// GET /api/contact/connection-info - Live Atlas cluster status & collections count (Admin protected)
+router.get('/connection-info', requireAdmin, async (req, res) => {
+  try {
+    const connData = await getConnectionData();
+    return res.json(connData);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to retrieve connection info: ' + err.message });
+  }
+});
 
 // POST /api/contact - Submit contact message (Rate limited, validated)
 router.post('/', contactLimiter, async (req, res) => {
@@ -80,6 +90,44 @@ router.get('/', requireAdmin, async (req, res) => {
     return res.json({ success: true, count: messages.length, data: messages });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/contact/:id - Delete inquiry (Admin protected)
+router.delete('/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { mode } = getDbStatus();
+
+    if (mode === 'mongodb') {
+      await Contact.findByIdAndDelete(id);
+    } else {
+      memoryStore.contacts = memoryStore.contacts.filter(c => c._id !== id);
+    }
+
+    return res.json({ success: true, message: 'Inquiry deleted successfully.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to delete message: ' + err.message });
+  }
+});
+
+// PATCH /api/contact/:id/status - Update status (new -> responded)
+router.patch('/:id/status', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const { mode } = getDbStatus();
+
+    if (mode === 'mongodb') {
+      await Contact.findByIdAndUpdate(id, { status: status || 'responded' });
+    } else {
+      const item = memoryStore.contacts.find(c => c._id === id);
+      if (item) item.status = status || 'responded';
+    }
+
+    return res.json({ success: true, message: 'Status updated.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to update status: ' + err.message });
   }
 });
 

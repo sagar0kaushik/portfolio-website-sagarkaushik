@@ -116,6 +116,33 @@ export const api = {
     return await res.json();
   },
 
+  async getConnectionInfo(token) {
+    const res = await fetch(`${API_BASE}/contact/connection-info`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return await res.json();
+  },
+
+  async deleteContact(id, token) {
+    const res = await fetch(`${API_BASE}/contact/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return await res.json();
+  },
+
+  async updateContactStatus(id, status, token) {
+    const res = await fetch(`${API_BASE}/contact/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    });
+    return await res.json();
+  },
+
   async createProject(data, token) {
     const res = await fetch(`${API_BASE}/projects`, {
       method: 'POST',

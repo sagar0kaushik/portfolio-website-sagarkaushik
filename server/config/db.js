@@ -1,5 +1,7 @@
 import dns from 'dns';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { initialProjects, initialBlogs } from '../data/seedData.js';
@@ -9,6 +11,11 @@ import { Contact } from '../models/Contact.js';
 import { User } from '../models/User.js';
 import { ConnectionInfo } from '../models/ConnectionInfo.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config();
 
 // Configure robust DNS resolution for MongoDB Atlas SRV connection strings
@@ -153,3 +160,58 @@ export const getDbStatus = () => ({
   database: 'sagar_kaushik_portfolio',
   cluster: 'cluster0.uejj6gg.mongodb.net'
 });
+
+export const getConnectionData = async () => {
+  const { mode } = getDbStatus();
+  if (mode === 'mongodb') {
+    const info = await ConnectionInfo.findOne().sort({ connectedAt: -1 });
+    const projectCount = await Project.countDocuments();
+    const blogCount = await Blog.countDocuments();
+    const contactCount = await Contact.countDocuments();
+    const userCount = await User.countDocuments();
+
+    return {
+      success: true,
+      mode: 'mongodb',
+      connected: true,
+      data: {
+        connectionStatus: info?.connectionStatus || 'ACTIVE_CONNECTED',
+        databaseName: info?.databaseName || 'sagar_kaushik_portfolio',
+        clusterHost: info?.clusterHost || 'cluster0.uejj6gg.mongodb.net',
+        connectedUser: info?.connectedUser || 'sagarkaushik584_db_user',
+        connectedAt: info?.connectedAt || new Date(),
+        adminUsername: info?.adminUsername || 'sagar',
+        collections: [
+          { name: 'contacts', count: contactCount, description: 'User connection inquiries & queries' },
+          { name: 'blogs', count: blogCount, description: 'Technical publications & markdown CMS articles' },
+          { name: 'projects', count: projectCount, description: 'Production architectural case studies' },
+          { name: 'users', count: userCount, description: 'Admin authentication credentials' },
+          { name: 'connection_info', count: 1, description: 'Live cluster connection verification record' }
+        ],
+        systemNote: info?.systemNote || 'MongoDB Atlas cluster0 is active, verified and synced with live portfolio data.'
+      }
+    };
+  } else {
+    return {
+      success: true,
+      mode: 'in-memory-fallback',
+      connected: false,
+      data: {
+        connectionStatus: 'IN_MEMORY_FALLBACK',
+        databaseName: 'sagar_kaushik_portfolio',
+        clusterHost: 'cluster0.uejj6gg.mongodb.net (offline/standby)',
+        connectedUser: 'sagarkaushik584_db_user',
+        connectedAt: new Date(),
+        adminUsername: 'sagar',
+        collections: [
+          { name: 'contacts', count: memoryStore.contacts.length, description: 'User connection inquiries & queries' },
+          { name: 'blogs', count: memoryStore.blogs.length, description: 'Technical publications & markdown CMS articles' },
+          { name: 'projects', count: memoryStore.projects.length, description: 'Production architectural case studies' },
+          { name: 'users', count: memoryStore.users.length, description: 'Admin authentication credentials' },
+          { name: 'connection_info', count: 1, description: 'In-memory fallback store' }
+        ],
+        systemNote: 'Running on in-memory store. Check MONGODB_URI to connect to Atlas cluster.'
+      }
+    };
+  }
+};

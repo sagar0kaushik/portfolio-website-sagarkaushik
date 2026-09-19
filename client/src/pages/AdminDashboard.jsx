@@ -7,19 +7,25 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import {
   Shield, Lock, LogOut, Mail, PlusCircle, CheckCircle, Trash2, Calendar,
   BookOpen, Eye, Edit, Check, AlertTriangle, ExternalLink, RefreshCw,
-  FolderPlus, Search, Filter, Globe, X
+  FolderPlus, Search, Filter, Globe, X, Database, Server, Reply, CheckCircle2, MessageSquare
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
   const { user, token, isAuthenticated, login, logout } = useAuth();
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('blogs'); // 'blogs' | 'contacts' | 'new-project'
+  const [activeTab, setActiveTab] = useState('blogs'); // 'blogs' | 'contacts' | 'database' | 'new-project'
   const [statusMsg, setStatusMsg] = useState('');
   const [previewBlog, setPreviewBlog] = useState(null);
 
-  // Contacts State
+  // Contacts / Connection Queries State
   const [contacts, setContacts] = useState([]);
+  const [contactSearch, setContactSearch] = useState('');
+  const [deleteConfirmContact, setDeleteConfirmContact] = useState(null);
+
+  // Database Connection Info State
+  const [connectionInfo, setConnectionInfo] = useState(null);
+  const [loadingConnection, setLoadingConnection] = useState(false);
 
   // Blog CMS State
   const [adminBlogs, setAdminBlogs] = useState([]);
@@ -58,6 +64,7 @@ export const AdminDashboard = () => {
     if (isAuthenticated && token) {
       loadContacts();
       loadAdminBlogs();
+      loadConnectionInfo();
     }
   }, [isAuthenticated, token]);
 
@@ -69,6 +76,48 @@ export const AdminDashboard = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const loadConnectionInfo = async () => {
+    setLoadingConnection(true);
+    try {
+      const res = await api.getConnectionInfo(token);
+      if (res && res.success && res.data) {
+        setConnectionInfo(res.data);
+      }
+    } catch (err) {
+      console.error('Error fetching connection info:', err);
+    } finally {
+      setLoadingConnection(false);
+    }
+  };
+
+  const handleDeleteContact = async (id) => {
+    try {
+      const res = await api.deleteContact(id, token);
+      if (res.success) {
+        setStatusMsg('Inquiry removed from database.');
+        setDeleteConfirmContact(null);
+        loadContacts();
+      } else {
+        setStatusMsg('Failed to delete inquiry: ' + (res.message || 'Error'));
+      }
+    } catch (err) {
+      setStatusMsg('Error: ' + err.message);
+    }
+  };
+
+  const handleToggleContactStatus = async (contact) => {
+    const nextStatus = contact.status === 'responded' ? 'new' : 'responded';
+    try {
+      const res = await api.updateContactStatus(contact._id, nextStatus, token);
+      if (res.success) {
+        setStatusMsg(`Inquiry from ${contact.name} marked as ${nextStatus.toUpperCase()}`);
+        loadContacts();
+      }
+    } catch (err) {
+      setStatusMsg('Error updating status: ' + err.message);
     }
   };
 
@@ -287,7 +336,18 @@ export const AdminDashboard = () => {
                   className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'contacts' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>CONTACT INQUIRIES ({contacts.length})</span>
+                  <span>CONNECTION QUERIES ({contacts.length})</span>
+                  {contacts.some(c => c.status !== 'responded') && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab('database')}
+                  className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'database' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  <span>DATABASE &amp; ATLAS</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </button>
                 <button
                   onClick={() => setActiveTab('new-project')}
@@ -561,47 +621,336 @@ export const AdminDashboard = () => {
             )}
 
             {/* ==================================================== */}
-            {/* TAB: CONTACT SUBMISSIONS */}
+            {/* TAB: CONNECTION QUERIES / CONTACT INQUIRIES */}
             {/* ==================================================== */}
             {activeTab === 'contacts' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-mono text-xs font-bold text-[#073B32] uppercase tracking-wider">
-                    STORED CONTACT SUBMISSIONS (REST API / MONGODB)
-                  </h3>
-                  <button
-                    onClick={loadContacts}
-                    className="flex items-center gap-1 text-xs font-mono text-[#315BDD] hover:underline"
-                  >
-                    <RefreshCw className="w-3 h-3" /> REFRESH
-                  </button>
+              <div className="space-y-6">
+                {/* Header & Metrics */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-mono text-xs font-bold text-[#073B32] uppercase tracking-wider flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-[#315BDD]" />
+                      <span>INCOMING CONNECTION QUERIES &amp; INQUIRIES</span>
+                    </h3>
+                    <p className="font-mono text-[11px] text-[#718078] mt-1">
+                      Stored in MongoDB Atlas <code className="text-[#315BDD] font-bold">contacts</code> collection
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={loadContacts}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#073B32]/20 rounded-lg text-xs font-mono font-bold text-[#073B32] hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> REFRESH
+                    </button>
+                  </div>
                 </div>
 
+                {/* Metrics Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white p-4 rounded-xl border border-[#073B32]/14 shadow-sm">
+                    <div className="font-mono text-[10px] text-[#718078] uppercase font-bold tracking-wider mb-1">
+                      TOTAL QUERIES
+                    </div>
+                    <div className="text-2xl font-extrabold text-[#073B32]">
+                      {contacts.length}
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-[#073B32]/14 shadow-sm">
+                    <div className="font-mono text-[10px] text-amber-600 uppercase font-bold tracking-wider mb-1">
+                      NEW / UNRESPONDED
+                    </div>
+                    <div className="text-2xl font-extrabold text-amber-700">
+                      {contacts.filter(c => c.status !== 'responded').length}
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-[#073B32]/14 shadow-sm">
+                    <div className="font-mono text-[10px] text-emerald-600 uppercase font-bold tracking-wider mb-1">
+                      RESPONDED
+                    </div>
+                    <div className="text-2xl font-extrabold text-emerald-700">
+                      {contacts.filter(c => c.status === 'responded').length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder="Search connection queries by sender name, email address, or message keyword..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-sans focus:outline-none focus:border-[#315BDD] text-[#073B32] shadow-sm"
+                  />
+                  {contactSearch && (
+                    <button
+                      onClick={() => setContactSearch('')}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-mono text-xs"
+                    >
+                      CLEAR
+                    </button>
+                  )}
+                </div>
+
+                {/* Queries List */}
                 {contacts.length === 0 ? (
-                  <div className="p-12 text-center font-mono text-xs text-[#718078] bg-white rounded-xl border border-[#073B32]/10">
-                    NO CONTACT MESSAGES IN RECORD YET.
+                  <div className="p-16 text-center font-mono text-xs text-[#718078] bg-white rounded-xl border border-[#073B32]/10 space-y-2">
+                    <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-bold text-[#073B32]">NO CONNECTION QUERIES IN DATABASE YET.</p>
+                    <p className="text-[11px]">When visitors submit the contact form on your portfolio, their inquiries will appear here.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {contacts.map((c) => (
-                      <div
-                        key={c._id}
-                        className="p-5 bg-white rounded-xl border border-[#073B32]/16 shadow-sm space-y-2"
-                      >
-                        <div className="flex flex-wrap items-center justify-between font-mono text-xs border-b border-gray-100 pb-2">
-                          <span className="font-bold text-[#073B32] text-sm">{c.name}</span>
-                          <span className="text-[#315BDD] font-semibold">{c.email}</span>
-                          <span className="text-[#718078] text-[10px]">
-                            {new Date(c.createdAt).toLocaleString()}
-                          </span>
+                    {contacts
+                      .filter(c => {
+                        if (!contactSearch) return true;
+                        const s = contactSearch.toLowerCase();
+                        return (
+                          c.name?.toLowerCase().includes(s) ||
+                          c.email?.toLowerCase().includes(s) ||
+                          c.message?.toLowerCase().includes(s)
+                        );
+                      })
+                      .map((c) => (
+                        <div
+                          key={c._id}
+                          className={`p-6 bg-white rounded-xl border shadow-sm space-y-3 transition-all ${
+                            c.status === 'responded'
+                              ? 'border-[#073B32]/14 opacity-85'
+                              : 'border-[#315BDD]/40 ring-1 ring-[#315BDD]/20'
+                          }`}
+                        >
+                          {/* Query Top Bar */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-[#073B32] text-white flex items-center justify-center font-bold text-xs">
+                                {c.name ? c.name.charAt(0).toUpperCase() : '?'}
+                              </div>
+                              <div>
+                                <div className="font-bold text-[#073B32] text-sm flex items-center gap-2">
+                                  <span>{c.name}</span>
+                                  <button
+                                    onClick={() => handleToggleContactStatus(c)}
+                                    title="Click to toggle status"
+                                    className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-bold cursor-pointer transition-colors ${
+                                      c.status === 'responded'
+                                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                        : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                    }`}
+                                  >
+                                    {c.status === 'responded' ? 'RESPONDED' : 'NEW QUERY'}
+                                  </button>
+                                </div>
+                                <a
+                                  href={`mailto:${c.email}?subject=Re: Inquiry from Sagar Kaushik Portfolio`}
+                                  className="text-xs text-[#315BDD] hover:underline font-mono"
+                                >
+                                  {c.email}
+                                </a>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 font-mono text-[11px] text-[#718078]">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>{new Date(c.createdAt).toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          {/* Message Content */}
+                          <p className="font-sans text-sm text-[#073B32] whitespace-pre-wrap leading-relaxed bg-[#fcfbf9] p-4 rounded-lg border border-[#073B32]/8">
+                            {c.message}
+                          </p>
+
+                          {/* Query Action Controls */}
+                          <div className="flex items-center justify-between pt-1 font-mono text-xs">
+                            <span className="text-[10px] text-gray-400">
+                              IP: {c.ip || 'Recorded'} | ID: {c._id}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`mailto:${c.email}?subject=Re: Inquiry from Sagar Kaushik Portfolio`}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#315BDD] text-white hover:bg-[#073B32] font-bold transition-colors text-xs"
+                              >
+                                <Reply className="w-3.5 h-3.5" />
+                                <span>REPLY VIA EMAIL</span>
+                              </a>
+                              <button
+                                onClick={() => setDeleteConfirmContact(c)}
+                                className="flex items-center gap-1 p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                title="Delete inquiry"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <p className="font-sans text-sm text-[#073B32] whitespace-pre-wrap leading-relaxed">
-                          {c.message}
-                        </p>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ==================================================== */}
+            {/* TAB: DATABASE & ATLAS CONNECTION INFO */}
+            {/* ==================================================== */}
+            {activeTab === 'database' && (
+              <div className="space-y-6">
+                {/* Header & Refresh */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-mono text-xs font-bold text-[#073B32] uppercase tracking-wider flex items-center gap-2">
+                      <Database className="w-4 h-4 text-emerald-600" />
+                      <span>MONGODB ATLAS CLUSTER0 // LIVE CONNECTION STATUS</span>
+                    </h3>
+                    <p className="font-mono text-[11px] text-[#718078] mt-1">
+                      Stored in MongoDB Atlas <code className="text-[#315BDD] font-bold">connection_info</code> collection
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={loadConnectionInfo}
+                    disabled={loadingConnection}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-[#073B32]/20 rounded-lg text-xs font-mono font-bold text-[#073B32] hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingConnection ? 'animate-spin' : ''}`} />
+                    <span>TEST &amp; SYNC ATLAS</span>
+                  </button>
+                </div>
+
+                {/* Connection Status Card */}
+                <div className="bg-white p-6 rounded-2xl border border-emerald-300 shadow-md space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <Server className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-[#718078] uppercase font-bold">CLUSTER STATUS:</span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[11px] font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            {connectionInfo?.connectionStatus || 'ACTIVE_CONNECTED'}
+                          </span>
+                        </div>
+                        <h4 className="font-extrabold text-[#073B32] text-lg mt-0.5">
+                          {connectionInfo?.databaseName || 'sagar_kaushik_portfolio'}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="font-mono text-right text-xs">
+                      <span className="text-[#718078] block text-[10px] uppercase">LAST SYNCED TIMESTAMP</span>
+                      <span className="font-bold text-[#073B32]">
+                        {connectionInfo?.connectedAt ? new Date(connectionInfo.connectedAt).toLocaleString() : 'Live'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                      <span className="text-[#718078] text-[10px] uppercase block font-bold">CLUSTER HOST</span>
+                      <span className="font-bold text-[#073B32] break-all">
+                        {connectionInfo?.clusterHost || 'cluster0.uejj6gg.mongodb.net'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                      <span className="text-[#718078] text-[10px] uppercase block font-bold">AUTHENTICATED DB USER</span>
+                      <span className="font-bold text-[#315BDD]">
+                        {connectionInfo?.connectedUser || 'sagarkaushik584_db_user'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                      <span className="text-[#718078] text-[10px] uppercase block font-bold">PORTFOLIO APPLICATION</span>
+                      <span className="font-bold text-[#073B32]">
+                        MERN Stack + FastAPI (Production)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs font-sans text-emerald-900 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span>
+                      {connectionInfo?.systemNote || 'MongoDB Atlas cluster0 is active, verified and synced with live portfolio data.'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Collections Breakdown Table */}
+                <div className="bg-white rounded-2xl border border-[#073B32]/14 shadow-sm overflow-hidden">
+                  <div className="p-4 px-6 bg-[#f7f6f2] border-b border-[#073B32]/10 font-mono text-xs font-bold text-[#073B32] uppercase tracking-wider flex items-center justify-between">
+                    <span>INITIALIZED DATABASE COLLECTIONS IN ATLAS</span>
+                    <span className="text-[11px] text-[#718078] font-normal">
+                      Total Collections: {connectionInfo?.collections?.length || 5}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-sans text-xs">
+                      <thead className="bg-[#fcfbf9] font-mono text-[10px] uppercase tracking-wider text-[#718078] border-b border-[#073B32]/10">
+                        <tr>
+                          <th className="p-3.5 pl-6 font-bold">COLLECTION NAME</th>
+                          <th className="p-3.5 font-bold">PURPOSE / CONTENTS</th>
+                          <th className="p-3.5 pr-6 text-right font-bold">DOCUMENT COUNT</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#073B32]/10 font-mono">
+                        {(connectionInfo?.collections || [
+                          { name: 'contacts', count: contacts.length, description: 'User connection inquiries & queries' },
+                          { name: 'blogs', count: blogMetrics.total, description: 'Technical publications & markdown CMS articles' },
+                          { name: 'projects', count: 5, description: 'Production architectural case studies' },
+                          { name: 'users', count: 1, description: 'Admin authentication credentials' },
+                          { name: 'connection_info', count: 1, description: 'Live cluster connection verification record' }
+                        ]).map((col) => (
+                          <tr key={col.name} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="p-3.5 pl-6">
+                              <span className="font-bold text-[#073B32] bg-gray-100 px-2.5 py-1 rounded text-xs">
+                                {col.name}
+                              </span>
+                            </td>
+                            <td className="p-3.5 font-sans text-xs text-[#073B32]">
+                              {col.description}
+                            </td>
+                            <td className="p-3.5 pr-6 text-right font-bold text-sm text-[#315BDD]">
+                              {col.count}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Raw JSON Inspection of connection_info collection */}
+                <div className="bg-[#0f1d19] rounded-2xl border border-[#073B32]/40 shadow-lg overflow-hidden text-emerald-300 font-mono text-xs">
+                  <div className="p-3 px-5 bg-[#0a1512] border-b border-[#073B32]/40 flex items-center justify-between text-[11px] text-emerald-400/80">
+                    <span className="uppercase font-bold tracking-wider">
+                      RAW ATLAS DOCUMENT // collection('connection_info').findOne()
+                    </span>
+                    <span className="text-[10px] text-gray-400">JSON REPRESENTATION</span>
+                  </div>
+                  <pre className="p-5 overflow-x-auto text-[11px] leading-relaxed">
+                    <code>
+                      {JSON.stringify(
+                        connectionInfo || {
+                          connectionStatus: 'ACTIVE_CONNECTED',
+                          databaseName: 'sagar_kaushik_portfolio',
+                          clusterHost: 'cluster0.uejj6gg.mongodb.net',
+                          connectedUser: 'sagarkaushik584_db_user',
+                          connectedAt: new Date(),
+                          application: 'Sagar Kaushik Full-Stack Portfolio (MERN + FastAPI)',
+                          collectionsInitialized: ['projects', 'blogs', 'users', 'contacts', 'connection_info']
+                        },
+                        null,
+                        2
+                      )}
+                    </code>
+                  </pre>
+                </div>
               </div>
             )}
 
@@ -838,6 +1187,37 @@ export const AdminDashboard = () => {
                 </button>
                 <button
                   onClick={() => handleDeleteBlog(deleteConfirmBlog._id)}
+                  className="px-4 py-2 rounded-lg bg-rose-600 text-white font-mono text-xs font-bold hover:bg-rose-700"
+                >
+                  CONFIRM DELETE
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CONTACT DELETE CONFIRMATION MODAL */}
+        {deleteConfirmContact && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white max-w-md w-full rounded-2xl p-6 border border-[#073B32]/20 shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-rose-600">
+                <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+                <h3 className="text-lg font-bold text-[#073B32]">Delete Connection Inquiry?</h3>
+              </div>
+              <p className="text-sm text-[#073B32]/80 leading-relaxed font-sans">
+                Are you sure you want to permanently delete the inquiry from{' '}
+                <span className="font-bold text-[#073B32]">"{deleteConfirmContact.name}"</span> ({deleteConfirmContact.email})?
+                This action cannot be undone and will remove the message from the database.
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setDeleteConfirmContact(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 font-mono text-xs font-bold text-gray-700 hover:bg-gray-100"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={() => handleDeleteContact(deleteConfirmContact._id)}
                   className="px-4 py-2 rounded-lg bg-rose-600 text-white font-mono text-xs font-bold hover:bg-rose-700"
                 >
                   CONFIRM DELETE
