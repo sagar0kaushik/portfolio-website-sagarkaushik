@@ -196,10 +196,10 @@ export const BlogPage = () => {
 
         {/* HERO FEATURED POST CARD (When viewing first page without search) */}
         {!searchQuery && selectedCategory === 'All' && !selectedTag && currentPage === 1 && heroPost && (
-          <div className="mb-14 group">
+          <div className="mb-12">
             <Link
               to={`/blogs/${heroPost.slug}`}
-              className="block bg-white rounded-2xl border border-[#073B32]/16 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:border-[#315BDD]"
+              className="group block bg-white rounded-2xl border border-[#073B32]/16 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 hover:border-[#315BDD]"
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                 {heroPost.featuredImage && (
@@ -281,7 +281,7 @@ export const BlogPage = () => {
             {blogs.map((article) => (
               <article
                 key={article.slug}
-                className="group flex flex-col bg-white rounded-xl border border-[#073B32]/16 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:border-[#315BDD]"
+                className="group flex flex-col bg-white rounded-xl border border-[#073B32]/16 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 hover:border-[#315BDD]"
               >
                 {/* Cover Image */}
                 {article.featuredImage ? (

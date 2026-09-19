@@ -54,7 +54,7 @@ body {
   background-position: center top, 0 0, 0 0;
 }
 
-/* Real-Time Interactive Background Cursor Bubble & Dot */
+/* Real-Time Tactile Desktop Cursor */
 .custom-cursor-dot {
   position: fixed;
   width: 7px;
@@ -62,7 +62,7 @@ body {
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
-  transition: transform 0.12s ease-out, background-color 0.2s ease;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
 }
 
 .custom-cursor-ring {
@@ -73,15 +73,80 @@ body {
   border: 1.5px solid;
   pointer-events: none;
   z-index: 9998;
-  transition: transform 0.22s ease-out, border-color 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background-color 0.2s ease;
 }
 
 @media (pointer: coarse) {
   .custom-cursor-dot,
-  .custom-cursor-ring,
-  .cursor-bubble-canvas {
+  .custom-cursor-ring {
     display: none !important;
   }
+}
+
+/* ==================================================== */
+/* AESTHETIC EDITORIAL HOVER ANIMATIONS */
+/* ==================================================== */
+
+/* Subtle Card Glow & Elevation on Hover */
+.exact-project-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease !important;
+}
+
+.exact-project-card:hover {
+  border-color: rgba(49, 91, 221, 0.32) !important;
+  box-shadow: 0 16px 36px -10px rgba(7, 59, 50, 0.14),
+              0 4px 12px -2px rgba(49, 91, 221, 0.06) !important;
+}
+
+/* Tech Pills Aesthetic Hover Lift */
+.tech-pill-box,
+.tech-tag {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              color 0.2s ease,
+              background-color 0.2s ease;
+}
+
+.tech-pill-box:hover,
+.tech-tag:hover {
+  transform: translateY(-1.5px);
+  border-color: var(--blue) !important;
+  color: var(--blue) !important;
+  background-color: rgba(49, 91, 221, 0.08) !important;
+}
+
+/* Arrow Shift on Link Hover */
+.card-circle-arrow-btn svg,
+a svg.arrow-hover {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.exact-project-card:hover .card-circle-arrow-btn svg,
+a:hover svg.arrow-hover {
+  transform: translate(2px, -2px);
+}
+
+/* Aesthetic Editorial Link Underline Animation */
+.editorial-hover-link {
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.editorial-hover-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background-color: var(--blue);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-hover-link:hover::after {
+  width: 100%;
 }
 
 ::selection {
