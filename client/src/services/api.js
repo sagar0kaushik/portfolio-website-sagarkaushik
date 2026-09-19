@@ -110,37 +110,61 @@ export const api = {
   },
 
   async getContacts(token) {
-    const res = await fetch(`${API_BASE}/contact`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return await res.json();
+    try {
+      const res = await fetch(`${API_BASE}/contact`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      data.statusCode = res.status;
+      return data;
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
   },
 
   async getConnectionInfo(token) {
-    const res = await fetch(`${API_BASE}/contact/connection-info`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return await res.json();
+    try {
+      const res = await fetch(`${API_BASE}/contact/connection-info`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      data.statusCode = res.status;
+      return data;
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
   },
 
   async deleteContact(id, token) {
-    const res = await fetch(`${API_BASE}/contact/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return await res.json();
+    try {
+      const res = await fetch(`${API_BASE}/contact/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      data.statusCode = res.status;
+      return data;
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
   },
 
   async updateContactStatus(id, status, token) {
-    const res = await fetch(`${API_BASE}/contact/${id}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ status })
-    });
-    return await res.json();
+    try {
+      const res = await fetch(`${API_BASE}/contact/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      data.statusCode = res.status;
+      return data;
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
   },
 
   async createProject(data, token) {

@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { CustomCursor } from './components/CustomCursor';
+import { CursorBubbleBackground } from './components/CursorBubbleBackground';
 import { HomePage } from './pages/HomePage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { BlogPage } from './pages/BlogPage';
@@ -21,6 +22,9 @@ export function App() {
       <Router>
         {/* Subtle Custom Desktop Cursor */}
         <CustomCursor />
+
+        {/* Real-time Interactive Background Bubble Animation */}
+        <CursorBubbleBackground />
 
         {/* Global Continuous Matrix Coordinate Grid Background */}
         <div className="global-matrix-grid" aria-hidden="true" />

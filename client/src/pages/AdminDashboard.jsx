@@ -14,12 +14,23 @@ export const AdminDashboard = () => {
   const { user, token, isAuthenticated, login, logout } = useAuth();
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('blogs'); // 'blogs' | 'contacts' | 'database' | 'new-project'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab && ['contacts', 'blogs', 'database', 'new-project'].includes(tab)) return tab;
+      const saved = localStorage.getItem('sk_admin_tab');
+      if (saved && ['contacts', 'blogs', 'database', 'new-project'].includes(saved)) return saved;
+    } catch (e) {}
+    return 'contacts'; // Default to Connection Queries so user immediately sees incoming messages
+  });
   const [statusMsg, setStatusMsg] = useState('');
   const [previewBlog, setPreviewBlog] = useState(null);
 
   // Contacts / Connection Queries State
   const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [contactsError, setContactsError] = useState('');
   const [contactSearch, setContactSearch] = useState('');
   const [deleteConfirmContact, setDeleteConfirmContact] = useState(null);
 
@@ -60,26 +71,59 @@ export const AdminDashboard = () => {
     previewType: 'dashboard'
   });
 
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    try {
+      localStorage.setItem('sk_admin_tab', newTab);
+      const url = new URL(window.location);
+      url.searchParams.set('tab', newTab);
+      window.history.replaceState({}, '', url);
+    } catch (e) {}
+    if (newTab === 'contacts') loadContacts();
+    if (newTab === 'database') loadConnectionInfo();
+    if (newTab === 'blogs') loadAdminBlogs();
+  };
+
   useEffect(() => {
     if (isAuthenticated && token) {
       loadContacts();
       loadAdminBlogs();
       loadConnectionInfo();
+
+      // Real-time live polling every 8 seconds for incoming connection queries
+      const pollTimer = setInterval(() => {
+        loadContacts();
+      }, 8000);
+      return () => clearInterval(pollTimer);
     }
   }, [isAuthenticated, token]);
 
   const loadContacts = async () => {
+    if (!token) return;
+    setLoadingContacts(true);
+    setContactsError('');
     try {
       const res = await api.getContacts(token);
+      if (res.statusCode === 401 || res.message?.includes('token') || res.message?.includes('expired') || res.message?.includes('Access denied')) {
+        logout();
+        setAuthError('Your session has expired. Please log in again.');
+        return;
+      }
       if (res.success && res.data) {
         setContacts(res.data);
+      } else {
+        setContactsError(res.message || 'Could not load connection queries.');
       }
     } catch (err) {
       console.error(err);
+      setContactsError(err.message);
+    } finally {
+      setLoadingContacts(false);
     }
   };
 
   const loadConnectionInfo = async () => {
+    if (!token) return;
     setLoadingConnection(true);
     try {
       const res = await api.getConnectionInfo(token);
@@ -325,24 +369,26 @@ export const AdminDashboard = () => {
               </div>
               <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
                 <button
-                  onClick={() => setActiveTab('blogs')}
+                  onClick={() => handleTabChange('contacts')}
+                  className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'contacts' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>CONNECTION QUERIES ({contacts.length})</span>
+                  {contacts.filter(c => c.status !== 'responded').length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px] animate-pulse">
+                      {contacts.filter(c => c.status !== 'responded').length} NEW
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleTabChange('blogs')}
                   className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'blogs' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>BLOG CMS ({blogMetrics.total})</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab('contacts')}
-                  className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'contacts' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>CONNECTION QUERIES ({contacts.length})</span>
-                  {contacts.some(c => c.status !== 'responded') && (
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('database')}
+                  onClick={() => handleTabChange('database')}
                   className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'database' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
                 >
                   <Database className="w-3.5 h-3.5" />
@@ -350,7 +396,7 @@ export const AdminDashboard = () => {
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </button>
                 <button
-                  onClick={() => setActiveTab('new-project')}
+                  onClick={() => handleTabChange('new-project')}
                   className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${activeTab === 'new-project' ? 'bg-[#073B32] text-white font-bold' : 'hover:bg-gray-100 text-[#073B32]'}`}
                 >
                   <FolderPlus className="w-3.5 h-3.5" />
@@ -364,6 +410,25 @@ export const AdminDashboard = () => {
                 </button>
               </div>
             </div>
+
+            {/* Unread Connection Queries Alert Banner when on other tabs */}
+            {contacts.some(c => c.status !== 'responded') && activeTab !== 'contacts' && (
+              <div className="mb-6 p-4 bg-amber-500/10 border-2 border-amber-500/40 rounded-xl flex flex-wrap items-center justify-between gap-4 font-mono text-xs shadow-sm animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                  <span className="text-[#073B32] font-bold">
+                    You have {contacts.filter(c => c.status !== 'responded').length} unread visitor connection inquiries waiting in your MongoDB Atlas database!
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleTabChange('contacts')}
+                  className="px-4 py-2 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors uppercase text-[11px] shadow-sm flex items-center gap-1.5"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>VIEW CONNECTION QUERIES NOW →</span>
+                </button>
+              </div>
+            )}
 
             {statusMsg && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-900 font-mono text-xs rounded-lg flex items-center justify-between">
@@ -640,12 +705,21 @@ export const AdminDashboard = () => {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={loadContacts}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#073B32]/20 rounded-lg text-xs font-mono font-bold text-[#073B32] hover:bg-gray-50 transition-colors shadow-sm"
+                      disabled={loadingContacts}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-[#073B32]/20 rounded-lg text-xs font-mono font-bold text-[#073B32] hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" /> REFRESH
+                      <RefreshCw className={`w-3.5 h-3.5 ${loadingContacts ? 'animate-spin' : ''}`} />
+                      <span>{loadingContacts ? 'SYNCING ATLAS...' : 'REFRESH ATLAS'}</span>
                     </button>
                   </div>
                 </div>
+
+                {contactsError && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-mono rounded-xl flex items-center justify-between">
+                    <span>{contactsError}</span>
+                    <button onClick={loadContacts} className="font-bold underline uppercase">RETRY</button>
+                  </div>
+                )}
 
                 {/* Metrics Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -701,6 +775,21 @@ export const AdminDashboard = () => {
                     <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="font-bold text-[#073B32]">NO CONNECTION QUERIES IN DATABASE YET.</p>
                     <p className="text-[11px]">When visitors submit the contact form on your portfolio, their inquiries will appear here.</p>
+                  </div>
+                ) : contacts.filter(c => {
+                    if (!contactSearch) return true;
+                    const s = contactSearch.toLowerCase();
+                    return (
+                      c.name?.toLowerCase().includes(s) ||
+                      c.email?.toLowerCase().includes(s) ||
+                      c.message?.toLowerCase().includes(s)
+                    );
+                  }).length === 0 ? (
+                  <div className="p-12 text-center font-mono text-xs text-[#718078] bg-white rounded-xl border border-[#073B32]/10 space-y-2">
+                    <p className="font-bold text-[#073B32]">NO INQUIRIES MATCH "{contactSearch}".</p>
+                    <button onClick={() => setContactSearch('')} className="text-[#315BDD] underline font-bold">
+                      CLEAR SEARCH FILTER
+                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
