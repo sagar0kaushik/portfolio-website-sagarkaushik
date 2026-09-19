@@ -1,0 +1,14 @@
+﻿User-agent: *
+Allow: /
+Allow: /about
+Allow: /work
+Allow: /stack
+Allow: /experience
+Allow: /education
+Allow: /blog
+Allow: /contact
+Allow: /projects/
+Disallow: /admin
+Disallow: /api/private/
+
+Sitemap: https://sagarkaushik.dev/sitemap.xml
