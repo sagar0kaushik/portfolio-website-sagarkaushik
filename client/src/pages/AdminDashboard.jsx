@@ -3,6 +3,7 @@ import { SEO } from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { BlogEditor } from '../components/admin/BlogEditor';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import {
   Shield, Lock, LogOut, Mail, PlusCircle, CheckCircle, Trash2, Calendar,
   BookOpen, Eye, Edit, Check, AlertTriangle, ExternalLink, RefreshCw,
@@ -15,6 +16,7 @@ export const AdminDashboard = () => {
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('blogs'); // 'blogs' | 'contacts' | 'new-project'
   const [statusMsg, setStatusMsg] = useState('');
+  const [previewBlog, setPreviewBlog] = useState(null);
 
   // Contacts State
   const [contacts, setContacts] = useState([]);
@@ -506,13 +508,22 @@ export const AdminDashboard = () => {
                               {/* Actions */}
                               <td className="p-3.5 pr-6 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {/* View Public / Preview */}
+                                  {/* Quick Preview Modal */}
+                                  <button
+                                    onClick={() => setPreviewBlog(b)}
+                                    className="p-1.5 text-gray-500 hover:text-[#315BDD] rounded hover:bg-gray-100"
+                                    title="Quick Preview modal"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+
+                                  {/* View Public in New Tab */}
                                   <a
                                     href={`/blogs/${b.slug}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="p-1.5 text-gray-500 hover:text-[#315BDD] rounded hover:bg-gray-100"
-                                    title="View live article"
+                                    title="Open public page in new tab"
                                   >
                                     <ExternalLink className="w-4 h-4" />
                                   </a>
@@ -707,6 +718,101 @@ export const AdminDashboard = () => {
                 </button>
               </form>
             )}
+          </div>
+        )}
+
+        {/* ARTICLE QUICK PREVIEW MODAL */}
+        {previewBlog && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white max-w-3xl w-full max-h-[85vh] rounded-2xl border border-[#073B32]/20 shadow-2xl flex flex-col overflow-hidden">
+              {/* Modal Top Bar */}
+              <div className="p-4 px-6 bg-[#f7f6f2] border-b border-[#073B32]/12 flex items-center justify-between font-mono text-xs">
+                <div className="flex items-center gap-3">
+                  <span className="text-[#315BDD] font-bold uppercase">{previewBlog.category}</span>
+                  <span className="text-gray-400">|</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    previewBlog.status === 'published' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {previewBlog.status?.toUpperCase() || 'DRAFT'}
+                  </span>
+                  <span className="text-gray-400">|</span>
+                  <span className="text-gray-500">{previewBlog.readTime || '5 min read'}</span>
+                </div>
+                <button
+                  onClick={() => setPreviewBlog(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-[#073B32] hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Scrollable Content */}
+              <div className="p-6 sm:p-8 overflow-y-auto flex-1 font-sans space-y-6">
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#073B32] tracking-tight">
+                  {previewBlog.title}
+                </h1>
+
+                {previewBlog.featuredImage && (
+                  <div className="rounded-xl overflow-hidden border border-[#073B32]/14 max-h-72">
+                    <img
+                      src={previewBlog.featuredImage}
+                      alt={previewBlog.featuredImageAlt || previewBlog.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {previewBlog.summary && (
+                  <div className="p-4 rounded-xl bg-[#f5c85b]/15 border-l-4 border-[#e27809] text-sm text-[#073B32] font-medium leading-relaxed">
+                    {previewBlog.summary}
+                  </div>
+                )}
+
+                <div className="border-t border-[#073B32]/12 pt-6">
+                  <MarkdownRenderer content={previewBlog.content} />
+                </div>
+
+                {previewBlog.tags && previewBlog.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-4 border-t border-[#073B32]/10 font-mono text-[10px]">
+                    {previewBlog.tags.map(t => (
+                      <span key={t} className="tech-tag">#{t}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div className="p-4 px-6 bg-gray-50 border-t border-gray-200 flex items-center justify-between font-mono text-xs">
+                <a
+                  href={`/blogs/${previewBlog.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[#315BDD] hover:underline font-bold"
+                >
+                  <span>OPEN IN PUBLIC VIEW</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const toEdit = previewBlog;
+                      setPreviewBlog(null);
+                      setEditingBlog(toEdit);
+                      setIsEditingBlog(true);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-[#073B32] text-white font-bold hover:bg-[#315BDD] transition-colors"
+                  >
+                    EDIT IN STUDIO
+                  </button>
+                  <button
+                    onClick={() => setPreviewBlog(null)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 font-bold hover:bg-gray-100 transition-colors"
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
