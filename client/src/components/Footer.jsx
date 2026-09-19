@@ -10,10 +10,10 @@ export const Footer = () => {
 
   return (
     <footer className="site-footer" style={{ backgroundColor: '#e27809' }}>
-      <div className="site-footer-container flip-on-scroll">
+      <div className="site-footer-container">
         <div className="site-footer__main">
           {/* Brand Identity in #e27809 Footer */}
-          <div className="site-footer__brand flip-on-scroll reveal-stagger-1">
+          <div className="site-footer__brand">
             <span className="font-mono text-[11px] text-white/90 uppercase tracking-widest block font-bold">
               ● SK / PORTFOLIO
             </span>
@@ -24,7 +24,7 @@ export const Footer = () => {
           </div>
 
           {/* Connected Social & Direct Channels */}
-          <div className="footer-links flip-on-scroll reveal-stagger-2">
+          <div className="footer-links">
             <a
               href="https://github.com/sagar0kaushik"
               target="_blank"
@@ -58,7 +58,7 @@ export const Footer = () => {
         </div>
 
         {/* Technical Footer Note & Navigation Controls */}
-        <div className="footer-note flip-on-scroll reveal-stagger-3">
+        <div className="footer-note">
           <div className="flex items-center gap-3">
             <span>© {new Date().getFullYear()} SAGAR KAUSHIK</span>
             <span>·</span>

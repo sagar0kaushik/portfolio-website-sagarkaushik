@@ -27,17 +27,31 @@ html {
 
 body {
   background-color: var(--cream);
-  background-image: 
-    radial-gradient(ellipse 90% 500px at 50% 0%, rgba(24, 88, 55, 0.08), transparent 75%),
-    linear-gradient(to right, rgba(24, 88, 55, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(24, 88, 55, 0.08) 1px, transparent 1px);
-  background-size: 100% 100%, 54px 54px, 54px 54px;
-  background-position: center top, 0 0, 0 0;
   color: var(--ink);
   font-family: var(--body);
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* Persistent Global Matrix Coordinate Grid Across Entire Application (Reference: media_1789641465490.png) */
+.global-matrix-grid {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    radial-gradient(ellipse 90% 650px at 50% 0%, rgba(24, 88, 55, 0.12), transparent 80%),
+    linear-gradient(to right, rgba(24, 88, 55, 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 88, 55, 0.10) 1px, transparent 1px);
+  background-size: 100% 100%, 52px 52px, 52px 52px;
+  background-position: center top, 0 0, 0 0;
 }
 
 ::selection {
@@ -1246,6 +1260,7 @@ button, a, input, textarea {
   width: 100vw !important;
   max-width: 100vw !important;
   position: relative;
+  z-index: 20;
   left: 50%;
   right: 50%;
   margin-left: -50vw !important;
@@ -1254,6 +1269,15 @@ button, a, input, textarea {
   overflow: hidden;
   box-sizing: border-box;
   border-top: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure footer and all internal elements are always completely visible on all pages */
+.site-footer *,
+.site-footer .site-footer-container {
+  opacity: 1;
+  visibility: visible;
 }
 
 .site-footer-container {
