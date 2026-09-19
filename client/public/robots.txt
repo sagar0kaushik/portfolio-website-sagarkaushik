@@ -11,4 +11,4 @@ Allow: /projects/
 Disallow: /admin
 Disallow: /api/private/
 
-Sitemap: https://sagarkaushik.dev/sitemap.xml
+Sitemap: https://sagarkaushik.com/sitemap.xml

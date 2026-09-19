@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: sagar-kaushik-portfolio
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: npm run build:all
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: BASE_URL
+        value: https://sagarkaushik.com
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_USERNAME
+        value: sagar
+      - key: ADMIN_PASSWORD
+        sync: false

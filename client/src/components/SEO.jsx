@@ -3,9 +3,9 @@ import { useEffect } from 'react';
 export const SEO = ({
   title = 'Sagar Kaushik | Software Engineer & Full-Stack Developer',
   description = 'Portfolio of Sagar Kaushik, Software Engineer & Full-Stack Developer specializing in MERN stack, Python, and AI systems. View projects, case studies, and contact.',
-  canonical = 'https://sagarkaushik.dev/',
+  canonical = 'https://sagarkaushik.com/',
   ogType = 'website',
-  ogImage = 'https://sagarkaushik.dev/og-image.svg',
+  ogImage = 'https://sagarkaushik.com/og-image.svg',
   noindex = false
 }) => {
   useEffect(() => {

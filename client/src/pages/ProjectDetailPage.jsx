@@ -55,7 +55,7 @@ export const ProjectDetailPage = () => {
       <SEO
         title={`${project.title} | Sagar Kaushik Software Engineer Case Study`}
         description={project.description}
-        canonical={`https://sagarkaushik.dev/projects/${project.slug}`}
+        canonical={`https://sagarkaushik.com/projects/${project.slug}`}
       />
 
       {/* SoftwareApplication Schema JSON-LD */}
@@ -71,7 +71,7 @@ export const ProjectDetailPage = () => {
             "author": {
               "@type": "Person",
               "name": "Sagar Kaushik",
-              "url": "https://sagarkaushik.dev"
+              "url": "https://sagarkaushik.com"
             },
             "description": project.description
           })
